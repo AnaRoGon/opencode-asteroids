@@ -316,6 +316,7 @@ class Ship {
     this.shootCooldown = 0;
     this.speedTimer    = 0;
     this.tripleShotTimer = 0;
+    this.shieldTimer   = 0;
     this.dead          = false;
   }
 
@@ -327,12 +328,17 @@ class Ship {
     this.tripleShotTimer = 5;
   }
 
+  applyShield() {
+    this.shieldTimer = 6;
+  }
+
   update(dt) {
     if (this.dead) return;
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.speedTimer    > 0) this.speedTimer    -= dt;
     if (this.tripleShotTimer > 0) this.tripleShotTimer -= dt;
+    if (this.shieldTimer   > 0) this.shieldTimer   -= dt;
 
     const ROT   = 3.5;   // rad/s
     let THRUST = 260;  // px/s²
@@ -447,6 +453,18 @@ class Ship {
       }
     }
 
+    // Escudo protector
+    if (this.shieldTimer > 0) {
+      const pulse = 0.3 + 0.15 * Math.sin(this.shieldTimer * 6);
+      ctx.strokeStyle = `rgba(0,180,255,${pulse.toFixed(2)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(0,180,255,${(pulse * 0.35).toFixed(2)})`;
+      ctx.fill();
+    }
+
     ctx.restore();
   }
 }
@@ -527,13 +545,13 @@ class FireworkParticle {
 
 // ── Power-Up ─────────────────────────────────────────────────────────────────
 class PowerUp {
-  constructor(x, y) {
+  constructor(x, y, type) {
     this.x = x;
     this.y = y;
+    this.type = type || (Math.random() < 0.65 ? 'speed' : 'tripleShot');
     this.radius = 10;
     this.ttl = 8;
     this.dead = false;
-    this.type = Math.random() < 0.65 ? 'speed' : 'tripleShot';
 
     const angle = rand(0, Math.PI * 2);
     const speed = rand(20, 50);
@@ -550,14 +568,29 @@ class PowerUp {
 
   draw() {
     const alpha = Math.min(1, this.ttl / 2);
-    const color = this.type === 'tripleShot' ? '255,50,50' : '255,220,0';
     ctx.save();
     ctx.translate(this.x, this.y);
 
-    ctx.strokeStyle = `rgba(${color},${alpha.toFixed(2)})`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (this.type === 'tripleShot') {
+    if (this.type === 'shield') {
+      ctx.strokeStyle = `rgba(0,180,255,${alpha.toFixed(2)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const n = 6;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const px = Math.cos(a) * 7;
+        const py = Math.sin(a) * 7;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = `rgba(0,180,255,${(alpha * 0.3).toFixed(2)})`;
+      ctx.fill();
+    } else if (this.type === 'tripleShot') {
+      const color = '255,50,50';
+      ctx.strokeStyle = `rgba(${color},${alpha.toFixed(2)})`;
+      ctx.lineWidth = 2;
       ctx.fillStyle = `rgba(${color},${(alpha * 0.8).toFixed(2)})`;
       ctx.beginPath();
       ctx.ellipse(0, 0, 3, 6, 0, 0, Math.PI * 2);
@@ -571,6 +604,9 @@ class PowerUp {
       ctx.fill();
       ctx.stroke();
     } else {
+      ctx.strokeStyle = `rgba(255,220,0,${alpha.toFixed(2)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
       ctx.moveTo(-3, -7);
       ctx.lineTo(1, -1);
       ctx.lineTo(-1, -1);
@@ -578,11 +614,8 @@ class PowerUp {
       ctx.lineTo(-1, 1);
       ctx.lineTo(1, 1);
       ctx.closePath();
-    }
-    ctx.stroke();
-
-    if (this.type !== 'tripleShot') {
-      ctx.fillStyle = `rgba(${color},${(alpha * 0.3).toFixed(2)})`;
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255,220,0,${(alpha * 0.3).toFixed(2)})`;
       ctx.fill();
     }
     ctx.restore();
@@ -595,6 +628,7 @@ let score, lives, level;
 let state;      // 'menu' | 'playing' | 'dead' | 'gameover'
 let deadTimer;
 let powerUpTimer;
+let shieldPowerUpTimer;
 let pinkStarTimer;
 let pinkStarsSpawned;
 
@@ -621,6 +655,7 @@ function initGame() {
   level  = 1;
   state  = 'playing';
   powerUpTimer = rand(8, 15);
+  shieldPowerUpTimer = rand(15, 25);
   pinkStarTimer = rand(3, 7);
   pinkStarsSpawned = 0;
   spawnAsteroids(4);
@@ -633,6 +668,7 @@ function nextLevel() {
   powerUps  = [];
   ship.reset();
   powerUpTimer = rand(8, 15);
+  shieldPowerUpTimer = rand(15, 25);
   pinkStarTimer = rand(3, 7);
   pinkStarsSpawned = 0;
   spawnAsteroids(3 + level);
@@ -706,6 +742,14 @@ function update(dt) {
     powerUps.push(new PowerUp(rand(0, W), rand(0, H)));
     powerUpTimer = rand(7, 14);
   }
+
+  // Spawning periódico de shield power-ups
+  shieldPowerUpTimer -= dt;
+  if (shieldPowerUpTimer <= 0) {
+    powerUps.push(new PowerUp(rand(0, W), rand(0, H), 'shield'));
+    shieldPowerUpTimer = rand(15, 25);
+  }
+
   powerUps.forEach(p => p.update(dt));
 
   // Spawning periódico de pinkStars
@@ -747,16 +791,26 @@ function update(dt) {
   if (ship.invincible <= 0) {
     for (const a of asteroids) {
       if (dist(ship, a) < ship.radius + a.radius * 0.82) {
-        killShip();
-        break;
+        if (ship.shieldTimer > 0) {
+          a.dead = true;
+          score += a.isPinkStar ? 200 : POINTS[a.size];
+          if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
+          else explode(a.x, a.y, a.size * 5);
+          asteroids.push(...a.split());
+        } else {
+          killShip();
+          break;
+        }
       }
     }
+    asteroids = asteroids.filter(a => !a.dead);
   }
 
   // Nave vs power-up
   for (const p of powerUps) {
     if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
       if (p.type === 'tripleShot') ship.applyTripleShot();
+      else if (p.type === 'shield') ship.applyShield();
       else ship.applySpeed();
       explode(p.x, p.y, 6);
       p.dead = true;
@@ -804,6 +858,15 @@ function drawHUD() {
     ctx.fillStyle = '#ff3333';
     const yOff = ship.speedTimer > 0 ? 62 : 46;
     ctx.fillText(`TRIPLE SHOT  ${ship.tripleShotTimer.toFixed(1)}s`, 14, yOff);
+    ctx.fillStyle = '#fff';
+  }
+
+  if (ship.shieldTimer > 0) {
+    ctx.fillStyle = '#00b4ff';
+    let yOff = 46;
+    if (ship.speedTimer > 0) yOff += 16;
+    if (ship.tripleShotTimer > 0) yOff += 16;
+    ctx.fillText(`SHIELD  ${ship.shieldTimer.toFixed(1)}s`, 14, yOff);
     ctx.fillStyle = '#fff';
   }
 

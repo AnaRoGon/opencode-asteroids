@@ -26,10 +26,10 @@ El archivo está organizado en secciones marcadas con comentarios `// ── Sec
 2. **Utils** — `wrap()`, `dist()`, `rand()`, `randInt()`. El wrap es toroidal, se usa en todas las entidades.
 3. **Bullet** — `update(dt)` y `draw()`. Tiene `ttl` y `dead`.
 4. **Asteroid** — Tamaños 1-3 con arreglos `RADII`, `SPEEDS`, `POINTS`. `split()` retorna 2 asteroides más pequeños. Vértices irregulares generados al azar.
-5. **Ship** — `reset()` para reaparecer. Invencibilidad temporal con parpadeo. `tryShoot()` con cooldown. `applySpeed()` activa boost x2 por 5s.
+5. **Ship** — `reset()` para reaparecer. Invencibilidad temporal con parpadeo. `tryShoot()` con cooldown. `applySpeed()` activa boost x2 por 5s. `applyShield()` activa escudo protector por 6s.
 6. **Particle** — Explosiones, se auto-destruyen con `ttl`.
-7. **PowerUp** — Rayo amarillo que otorga velocidad x2 por 5s. Spawning periódico (cada 10-18s). TTL de 8s. Si se recoge otro estando activo, se reinicia el timer.
-8. **Estado del juego** — Variables globales: `ship`, `bullets`, `asteroids`, `particles`, `powerUps`, `score`, `lives`, `level`, `state`, `powerUpTimer`.
+7. **PowerUp** — Dos tipos: `'speed'` (rayo amarillo, velocidad x2 por 5s) y `'shield'` (hexágono azul, escudo por 6s). Spawning periódico: speed cada 10-18s, shield cada 15-25s. TTL de 8s. Si se recoge otro del mismo tipo estando activo, se reinicia el timer.
+8. **Estado del juego** — Variables globales: `ship`, `bullets`, `asteroids`, `particles`, `powerUps`, `score`, `lives`, `level`, `state`, `powerUpTimer`, `shieldPowerUpTimer`.
 9. **Update** — Loop de actualización con máquina de estados (`playing`, `dead`, `gameover`). Colisiones bala-asteroide, nave-asteroide y nave-power-up.
 10. **Draw** — Renderizado de HUD, overlays y entidades.
 11. **Loop principal** — `requestAnimationFrame` con `dt` limitado a 50ms.
