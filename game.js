@@ -118,6 +118,83 @@ class Asteroid {
   }
 }
 
+// ── PinkStar (asteroide especial) ─────────────────────────────────────────────
+class PinkStar extends Asteroid {
+  constructor(x, y) {
+    super(x, y, 2);
+    this.radius = 20;
+    this.ttl = rand(4, 6);
+    this.life = this.ttl;
+    this.dead = false;
+    this.isPinkStar = true;
+
+    const angle = rand(0, Math.PI * 2);
+    const speed = 110 + rand(-20, 20);
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.rotSpeed = rand(-0.8, 0.8);
+    this.rot = rand(0, Math.PI * 2);
+
+    this.numSpikes = 8;
+    this.spikeInner = this.radius * 0.55;
+    this.spikeOuter = this.radius;
+  }
+
+  update(dt) {
+    this.x   = wrap(this.x + this.vx * dt, W);
+    this.y   = wrap(this.y + this.vy * dt, H);
+    this.rot += this.rotSpeed * dt;
+    this.ttl -= dt;
+    if (this.ttl <= 0) this.dead = true;
+  }
+
+  split() { return []; }
+
+  draw() {
+    const alpha = Math.min(1, this.ttl / 2);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rot);
+
+    // Estela naranja
+    ctx.strokeStyle = `rgba(255,120,0,${(alpha * 0.5).toFixed(2)})`;
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 5; i++) {
+      const a = rand(0, Math.PI * 2);
+      const len = rand(15, 30);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+      ctx.stroke();
+    }
+
+    // Sol magenta con puntas suavizadas
+    ctx.fillStyle = `rgba(255,0,255,${(alpha * 0.8).toFixed(2)})`;
+    ctx.strokeStyle = `rgba(255,0,255,${alpha.toFixed(2)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const n = this.numSpikes;
+    for (let i = 0; i < n; i++) {
+      const aOuter = (i / n) * Math.PI * 2;
+      const aInner = ((i + 0.5) / n) * Math.PI * 2;
+      const ox = Math.cos(aOuter) * this.spikeOuter;
+      const oy = Math.sin(aOuter) * this.spikeOuter;
+      const ix = Math.cos(aInner) * this.spikeInner;
+      const iy = Math.sin(aInner) * this.spikeInner;
+      if (i === 0) ctx.moveTo(ox, oy);
+      else ctx.lineTo(ox, oy);
+      ctx.quadraticCurveTo(ix * 1.15, iy * 1.15,
+        Math.cos(((i + 1) / n) * Math.PI * 2) * this.spikeOuter,
+        Math.sin(((i + 1) / n) * Math.PI * 2) * this.spikeOuter);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
   constructor() { this.reset(); }
@@ -242,6 +319,48 @@ class Particle {
   }
 }
 
+// ── FireworkParticle (explosión fuego artificial) ────────────────────────────
+class FireworkParticle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    const angle = rand(0, Math.PI * 2);
+    const speed = rand(40, 180);
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.life = rand(0.6, 1.4);
+    this.ttl = this.life;
+    this.radius = rand(1.5, 3.5);
+    this.dead = false;
+
+    const colors = [
+      [255, 0, 255],
+      [255, 100, 200],
+      [255, 150, 50],
+      [255, 255, 255],
+    ];
+    this.color = colors[randInt(0, colors.length - 1)];
+  }
+
+  update(dt) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.vx *= 0.97;
+    this.vy *= 0.97;
+    this.ttl -= dt;
+    if (this.ttl <= 0) this.dead = true;
+  }
+
+  draw() {
+    const alpha = this.ttl / this.life;
+    const [r, g, b] = this.color;
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius * alpha, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 // ── Power-Up ─────────────────────────────────────────────────────────────────
 class PowerUp {
   constructor(x, y) {
@@ -294,6 +413,8 @@ let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
 let powerUpTimer;
+let pinkStarTimer;
+let pinkStarsSpawned;
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -318,6 +439,8 @@ function initGame() {
   level  = 1;
   state  = 'playing';
   powerUpTimer = rand(8, 15);
+  pinkStarTimer = rand(3, 7);
+  pinkStarsSpawned = 0;
   spawnAsteroids(4);
 }
 
@@ -328,11 +451,17 @@ function nextLevel() {
   powerUps  = [];
   ship.reset();
   powerUpTimer = rand(8, 15);
+  pinkStarTimer = rand(3, 7);
+  pinkStarsSpawned = 0;
   spawnAsteroids(3 + level);
 }
 
 function explode(x, y, count = 8) {
   for (let i = 0; i < count; i++) particles.push(new Particle(x, y));
+}
+
+function fireworkExplode(x, y, count = 25) {
+  for (let i = 0; i < count; i++) particles.push(new FireworkParticle(x, y));
 }
 
 function killShip() {
@@ -383,6 +512,20 @@ function update(dt) {
   }
   powerUps.forEach(p => p.update(dt));
 
+  // Spawning periódico de pinkStars
+  pinkStarTimer -= dt;
+  if (pinkStarTimer <= 0 && pinkStarsSpawned < 2) {
+    const side = randInt(0, 3);
+    let x, y;
+    if (side === 0)      { x = 0; y = rand(0, H); }
+    else if (side === 1) { x = W; y = rand(0, H); }
+    else if (side === 2) { x = rand(0, W); y = 0; }
+    else                 { x = rand(0, W); y = H; }
+    asteroids.push(new PinkStar(x, y));
+    pinkStarsSpawned++;
+    pinkStarTimer = rand(12, 20);
+  }
+
   bullets   = bullets.filter(b => !b.dead);
   particles = particles.filter(p => !p.dead);
   powerUps  = powerUps.filter(p => !p.dead);
@@ -394,8 +537,9 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
-        explode(a.x, a.y, a.size * 5);
+        score += a.isPinkStar ? 200 : POINTS[a.size];
+        if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
+        else explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
       }
     }
