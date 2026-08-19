@@ -6,7 +6,7 @@ Clone de Asteroids en HTML5 Canvas puro. Sin bundler, sin dependencias externas.
 
 **Archivos:**
 - `index.html` — shell HTML, solo carga el canvas y `game.js`
-- `game.js` — toda la lógica del juego (423 líneas)
+- `game.js` — toda la lógica del juego
 - `favicon.svg` — ícono
 
 ## Ejecutar
@@ -22,16 +22,17 @@ El archivo está organizado en secciones marcadas con comentarios `// ── Sec
 
 **Secciones (en orden):**
 
-1. **Input** (L8-24) — `keys` y `justPressed` para teclado. `pressed(code)` retorna true solo en el frame en que se presionó.
-2. **Utils** (L27-31) — `wrap()`, `dist()`, `rand()`, `randInt()`. El wrap es toroidal, se usa en todas las entidades.
-3. **Bullet** (L33-58) — `update(dt)` y `draw()`. Tiene `ttl` y `dead`.
-4. **Asteroid** (L61-119) — Tamaños 1-3 con arreglos `RADII`, `SPEEDS`, `POINTS`. `split()` retorna 2 asteroides más pequeños. Vértices irregulares generados al azar.
-5. **Ship** (L122-204) — `reset()` para reaparecer. Invencibilidad temporal con parpadeo. `tryShoot()` con cooldown.
-6. **Particle** (L207-236) — Explosiones, se auto-destruyen con `ttl`.
-7. **Estado del juego** (L238-290) — Variables globales: `ship`, `bullets`, `asteroids`, `particles`, `score`, `lives`, `level`, `state`.
-8. **Update** (L293-351) — Loop de actualización con máquina de estados (`playing`, `dead`, `gameover`). Colisiones bala-asteroide y nave-asteroide.
-9. **Draw** (L353-409) — Renderizado de HUD, overlays y entidades.
-10. **Loop principal** (L412-423) — `requestAnimationFrame` con `dt` limitado a 50ms.
+1. **Input** — `keys` y `justPressed` para teclado. `pressed(code)` retorna true solo en el frame en que se presionó.
+2. **Utils** — `wrap()`, `dist()`, `rand()`, `randInt()`. El wrap es toroidal, se usa en todas las entidades.
+3. **Bullet** — `update(dt)` y `draw()`. Tiene `ttl` y `dead`.
+4. **Asteroid** — Tamaños 1-3 con arreglos `RADII`, `SPEEDS`, `POINTS`. `split()` retorna 2 asteroides más pequeños. Vértices irregulares generados al azar.
+5. **Ship** — `reset()` para reaparecer. Invencibilidad temporal con parpadeo. `tryShoot()` con cooldown. `applySpeed()` activa boost x2 por 5s.
+6. **Particle** — Explosiones, se auto-destruyen con `ttl`.
+7. **PowerUp** — Rayo amarillo que otorga velocidad x2 por 5s. Spawning periódico (cada 10-18s). TTL de 8s. Si se recoge otro estando activo, se reinicia el timer.
+8. **Estado del juego** — Variables globales: `ship`, `bullets`, `asteroids`, `particles`, `powerUps`, `score`, `lives`, `level`, `state`, `powerUpTimer`.
+9. **Update** — Loop de actualización con máquina de estados (`playing`, `dead`, `gameover`). Colisiones bala-asteroide, nave-asteroide y nave-power-up.
+10. **Draw** — Renderizado de HUD, overlays y entidades.
+11. **Loop principal** — `requestAnimationFrame` con `dt` limitado a 50ms.
 
 **Máquina de estados:**
 - `playing` → juego activo

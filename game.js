@@ -132,16 +132,23 @@ class Ship {
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
+    this.speedTimer    = 0;
     this.dead          = false;
+  }
+
+  applySpeed() {
+    this.speedTimer = 5;
   }
 
   update(dt) {
     if (this.dead) return;
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
+    if (this.speedTimer    > 0) this.speedTimer    -= dt;
 
     const ROT   = 3.5;   // rad/s
-    const THRUST = 260;  // px/s²
+    let THRUST = 260;  // px/s²
+    if (this.speedTimer > 0) THRUST *= 2;
     const DRAG   = 0.987;
 
     if (keys['ArrowLeft'])  this.angle -= ROT * dt;
@@ -235,11 +242,58 @@ class Particle {
   }
 }
 
+// ── Power-Up ─────────────────────────────────────────────────────────────────
+class PowerUp {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 10;
+    this.ttl = 8;
+    this.dead = false;
+
+    const angle = rand(0, Math.PI * 2);
+    const speed = rand(20, 50);
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+  }
+
+  update(dt) {
+    this.x = wrap(this.x + this.vx * dt, W);
+    this.y = wrap(this.y + this.vy * dt, H);
+    this.ttl -= dt;
+    if (this.ttl <= 0) this.dead = true;
+  }
+
+  draw() {
+    const alpha = Math.min(1, this.ttl / 2);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Rayo amarillo
+    ctx.strokeStyle = `rgba(255,220,0,${alpha.toFixed(2)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-3, -7);
+    ctx.lineTo(1, -1);
+    ctx.lineTo(-1, -1);
+    ctx.lineTo(3, 7);
+    ctx.lineTo(-1, 1);
+    ctx.lineTo(1, 1);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.fillStyle = `rgba(255,220,0,${(alpha * 0.3).toFixed(2)})`;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 // ── Estado del juego ──────────────────────────────────────────────────────────
-let ship, bullets, asteroids, particles;
+let ship, bullets, asteroids, particles, powerUps;
 let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
+let powerUpTimer;
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -258,10 +312,12 @@ function initGame() {
   bullets   = [];
   asteroids = [];
   particles = [];
+  powerUps  = [];
   score  = 0;
   lives  = 3;
   level  = 1;
   state  = 'playing';
+  powerUpTimer = rand(8, 15);
   spawnAsteroids(4);
 }
 
@@ -269,7 +325,9 @@ function nextLevel() {
   level++;
   bullets   = [];
   particles = [];
+  powerUps  = [];
   ship.reset();
+  powerUpTimer = rand(8, 15);
   spawnAsteroids(3 + level);
 }
 
@@ -317,8 +375,17 @@ function update(dt) {
   asteroids.forEach(a => a.update(dt));
   particles.forEach(p => p.update(dt));
 
+  // Spawning periódico de power-ups
+  powerUpTimer -= dt;
+  if (powerUpTimer <= 0) {
+    powerUps.push(new PowerUp(rand(0, W), rand(0, H)));
+    powerUpTimer = rand(10, 18);
+  }
+  powerUps.forEach(p => p.update(dt));
+
   bullets   = bullets.filter(b => !b.dead);
   particles = particles.filter(p => !p.dead);
+  powerUps  = powerUps.filter(p => !p.dead);
 
   // Bala vs asteroide
   const newAsteroids = [];
@@ -345,6 +412,16 @@ function update(dt) {
       }
     }
   }
+
+  // Nave vs power-up
+  for (const p of powerUps) {
+    if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
+      ship.applySpeed();
+      explode(p.x, p.y, 6);
+      p.dead = true;
+    }
+  }
+  powerUps = powerUps.filter(p => !p.dead);
 
   // Nivel completado
   if (asteroids.length === 0) nextLevel();
@@ -375,6 +452,12 @@ function drawHUD() {
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE  ${score}`, 14, 26);
 
+  if (ship.speedTimer > 0) {
+    ctx.fillStyle = '#ffdc00';
+    ctx.fillText(`SPEED  ${ship.speedTimer.toFixed(1)}s`, 14, 46);
+    ctx.fillStyle = '#fff';
+  }
+
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
 
@@ -399,6 +482,7 @@ function draw() {
 
   particles.forEach(p => p.draw());
   asteroids.forEach(a => a.draw());
+  powerUps.forEach(p => p.draw());
   bullets.forEach(b => b.draw());
   ship.draw();
 
