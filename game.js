@@ -111,6 +111,16 @@ const SKINS = [
     flameType: 'dual',
     flameX: -8,
   },
+  {
+    name: 'DOBLE',
+    color: '#ffff00',
+    verts: [[40,0],[-24,-18],[-14,0],[-24,18]],
+    nose: 42,
+    flameType: 'classic',
+    flameX: -16,
+    radius: 24,
+    scoreMultiplier: 2,
+  },
 ];
 
 const SKIN_FLAMES = {};
@@ -309,7 +319,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = SKINS[currentSkinIndex].radius || 12;
     this.nose   = SKINS[currentSkinIndex].nose;
     this.thrusting     = false;
     this.invincible    = 3;
@@ -771,13 +781,14 @@ function update(dt) {
   powerUps  = powerUps.filter(p => !p.dead);
 
   // Bala vs asteroide
+  const scoreMult = SKINS[currentSkinIndex].scoreMultiplier || 1;
   const newAsteroids = [];
   for (const b of bullets) {
     for (const a of asteroids) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += a.isPinkStar ? 200 : POINTS[a.size];
+        score += (a.isPinkStar ? 200 : POINTS[a.size]) * scoreMult;
         if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
         else explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
@@ -793,7 +804,7 @@ function update(dt) {
       if (dist(ship, a) < ship.radius + a.radius * 0.82) {
         if (ship.shieldTimer > 0) {
           a.dead = true;
-          score += a.isPinkStar ? 200 : POINTS[a.size];
+          score += (a.isPinkStar ? 200 : POINTS[a.size]) * scoreMult;
           if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
           else explode(a.x, a.y, a.size * 5);
           asteroids.push(...a.split());
