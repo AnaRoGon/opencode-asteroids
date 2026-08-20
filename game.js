@@ -111,6 +111,17 @@ const SKINS = [
     flameType: 'dual',
     flameX: -8,
   },
+  {
+    name: 'ORO',
+    color: '#ffd700',
+    verts: [[40,0],[-24,-18],[-14,0],[-24,18]],
+    nose: 42,
+    radius: 24,
+    points: 2,
+    previewScale: 0.75,
+    flameType: 'classic',
+    flameX: -16,
+  },
 ];
 
 const SKIN_FLAMES = {};
@@ -309,8 +320,9 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
-    this.nose   = SKINS[currentSkinIndex].nose;
+    const skin  = SKINS[currentSkinIndex];
+    this.radius = skin.radius || 12;
+    this.nose   = skin.nose;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -723,7 +735,9 @@ function update(dt) {
 
   if (pressed('KeyW')) {
     currentSkinIndex = (currentSkinIndex + 1) % SKINS.length;
-    ship.nose = SKINS[currentSkinIndex].nose;
+    const skin = SKINS[currentSkinIndex];
+    ship.nose   = skin.nose;
+    ship.radius = skin.radius || 12;
   }
 
   // Disparar
@@ -772,12 +786,13 @@ function update(dt) {
 
   // Bala vs asteroide
   const newAsteroids = [];
+  const mult = SKINS[currentSkinIndex].points || 1;
   for (const b of bullets) {
     for (const a of asteroids) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += a.isPinkStar ? 200 : POINTS[a.size];
+        score += (a.isPinkStar ? 200 : POINTS[a.size]) * mult;
         if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
         else explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
@@ -793,7 +808,7 @@ function update(dt) {
       if (dist(ship, a) < ship.radius + a.radius * 0.82) {
         if (ship.shieldTimer > 0) {
           a.dead = true;
-          score += a.isPinkStar ? 200 : POINTS[a.size];
+          score += (a.isPinkStar ? 200 : POINTS[a.size]) * mult;
           if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
           else explode(a.x, a.y, a.size * 5);
           asteroids.push(...a.split());
@@ -825,7 +840,7 @@ function update(dt) {
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
   const skin = SKINS[currentSkinIndex];
-  const S = 0.45;
+  const S = 0.45 * (skin.previewScale || 1);
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
@@ -981,13 +996,19 @@ function drawMenu() {
       ctx.fillRect(x - 45, y - 45, 90, 90);
     }
 
-    drawMenuSkinPreview(x, y, i, highlighted ? 1.8 : 1.2, highlighted);
+    drawMenuSkinPreview(x, y, i, (highlighted ? 1.8 : 1.2) * (SKINS[i].previewScale || 1), highlighted);
   }
 
   const skin = SKINS[currentSkinIndex];
   ctx.font = 'bold 22px monospace';
   ctx.fillStyle = skin.color;
   ctx.fillText(skin.name, W / 2, H / 2 + 55);
+
+  if (skin.points > 1) {
+    ctx.font = '13px monospace';
+    ctx.fillStyle = 'rgba(255,215,0,0.9)';
+    ctx.fillText('PUNTOS X2', W / 2, H / 2 + 78);
+  }
 
   ctx.font = '15px monospace';
   ctx.fillStyle = 'rgba(255,255,255,0.6)';

@@ -29,7 +29,7 @@ El archivo está organizado en secciones marcadas con comentarios `// ── Sec
 
 1. **Input** — `keys` y `justPressed` para teclado. `pressed(code)` retorna true solo en el frame en que se presionó.
 2. **Utils** — `wrap()`, `dist()`, `rand()`, `randInt()`, `complementColor()`. El wrap es toroidal, se usa en todas las entidades.
-3. **Skins** — Arreglo `SKINS` con 6 skins: CLASICA, MANTA, CRESCENT, DRAGONFLY, ORIGAMI, HAMMER. Cada una define `name`, `color`, `verts` (vértices), `nose`, `flameType`, `flameX`. `currentSkinIndex` controla la selección.
+3. **Skins** — Arreglo `SKINS` con 7 skins: CLASICA, MANTA, CRESCENT, DRAGONFLY, ORIGAMI, HAMMER, ORO. Cada una define `name`, `color`, `verts` (vértices), `nose`, `flameType`, `flameX`. Propiedades opcionales: `radius` (radio de colisión, default 12), `points` (multiplicador de puntos, default 1), `previewScale` (escala en menú/vidas, default 1). ORO es el doble de grande y da puntos x2. `currentSkinIndex` controla la selección.
 4. **Bullet** — `update(dt)` y `draw()`. Tiene `ttl` y `dead`.
 5. **Asteroid** — Tamaños 1-3 con arreglos `RADII`, `SPEEDS`, `POINTS`. `split()` retorna 2 asteroides más pequeños. Vértices irregulares generados al azar.
 6. **PinkStar** — Asteroide especial "estrella fugaz". Hereda de `Asteroid`. Velocidad 110px/s, TTL 4-6s, forma de estrella magenta con 8 puntas y estela naranja. `split()` retorna vacío (no genera más asteroides).
