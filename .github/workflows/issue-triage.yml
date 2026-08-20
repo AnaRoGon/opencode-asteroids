@@ -1,0 +1,106 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      id-token: write
+      timeout-minutes: 10
+      env:
+        OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Format body and apply labels
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const { owner, repo } = context.repo;
+            const { number, title } = issue;
+            const rawBody = issue.body || '';
+
+            const baseLabel = 'triage';
+
+            const typeLabels = {
+              fix: 'bug',
+              feat: 'feature',
+              docs: 'documentation',
+              chore: 'chore',
+              refactor: 'refactor',
+              test: 'test',
+              style: 'style',
+              perf: 'performance',
+              build: 'build',
+              ci: 'ci',
+              revert: 'revert',
+            };
+
+            const prefixMatch = title.match(/^(fix|feat|docs|chore|refactor|test|style|perf|build|ci|revert)(\([^)]*\))?:\s*/i);
+            const prefix = prefixMatch ? prefixMatch[1].toLowerCase() : null;
+            const typeLabel = prefix ? typeLabels[prefix] : 'enhancement';
+
+            const labelColors = {
+              'triage': 'fbca04',
+              'bug': 'd73a4a',
+              'feature': '0e8a16',
+              'documentation': '0075ca',
+              'chore': 'bfd4f2',
+              'refactor': 'd4c5f9',
+              'test': '6f42c1',
+              'style': 'f9d0c4',
+              'performance': 'c5def5',
+              'build': '5319e7',
+              'ci': '1d76db',
+              'revert': 'e4e669',
+              'enhancement': 'a2eeef',
+            };
+
+            for (const label of [baseLabel, typeLabel]) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name: label,
+                  color: labelColors[label],
+                });
+              } catch (err) {
+                if (err.status !== 422) throw err;
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: number,
+              labels: [baseLabel, typeLabel],
+            });
+
+            const reviewTemplate = [
+              '## Revisión',
+              '',
+              '- [ ] Pasos para reproducir',
+              '- [ ] Comportamiento esperado',
+              '- [ ] Comportamiento actual',
+              '- [ ] Entorno: SO, navegador y versión del juego',
+              '- [ ] Capturas de pantalla o GIF si aplica',
+              '- [ ] Prioridad sugerida (baja / media / alta)',
+              '',
+            ].join('\n');
+
+            const normalizedBody = rawBody.trim();
+
+            const newBody = `## Descripción\n\n${normalizedBody}\n\n---\n\n${reviewTemplate}`;
+
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: number,
+              body: newBody,
+            });
