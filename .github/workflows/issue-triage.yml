@@ -9,13 +9,7 @@ jobs:
     if: github.event.issue.pull_request == null
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: write
-      pull-requests: write
       issues: write
-    env:
-      OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Format body and apply labels
         uses: actions/github-script@v8
@@ -104,17 +98,3 @@ jobs:
               issue_number: number,
               body: newBody,
             });
-
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Configure git
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-
-      - name: Run opencode
-        uses: anomalyco/opencode/github@latest
-        with:
-          model: opencode/deepseek-v4-flash-free
-          use_github_token: true
