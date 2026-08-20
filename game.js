@@ -111,6 +111,16 @@ const SKINS = [
     flameType: 'dual',
     flameX: -8,
   },
+  {
+    name: 'DORADO',
+    color: '#ffd700',
+    verts: [[16,0],[12,-9],[4,-6],[-6,-8],[-12,-4],[-12,4],[-6,8],[4,6],[12,9]],
+    nose: 16,
+    flameType: 'dual',
+    flameX: -12,
+    scale: 2,
+    scoreMult: 2,
+  },
 ];
 
 const SKIN_FLAMES = {};
@@ -300,6 +310,8 @@ class PinkStar extends Asteroid {
 }
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
+const SHIP_BASE_RADIUS = 12;
+
 class Ship {
   constructor() { this.reset(); }
 
@@ -309,8 +321,9 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
-    this.nose   = SKINS[currentSkinIndex].nose;
+    const skinScale = SKINS[currentSkinIndex].scale || 1;
+    this.radius = SHIP_BASE_RADIUS * skinScale;
+    this.nose   = SKINS[currentSkinIndex].nose * skinScale;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -385,64 +398,65 @@ class Ship {
 
     const skin = SKINS[currentSkinIndex];
     const flame = SKIN_FLAMES[skin.name];
+    const s = skin.scale || 1;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
     ctx.strokeStyle = skin.color;
-    ctx.lineWidth   = 1.5;
+    ctx.lineWidth   = 1.5 * s;
     ctx.lineJoin    = 'round';
 
     ctx.beginPath();
-    ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+    ctx.moveTo(skin.verts[0][0] * s, skin.verts[0][1] * s);
     for (let i = 1; i < skin.verts.length; i++)
-      ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
+      ctx.lineTo(skin.verts[i][0] * s, skin.verts[i][1] * s);
     ctx.closePath();
     ctx.stroke();
 
     if (this.thrusting && Math.random() > 0.3) {
       ctx.strokeStyle = flame;
-      ctx.lineWidth = 1.5;
-      const fx = skin.flameX;
+      ctx.lineWidth = 1.5 * s;
+      const fx = skin.flameX * s;
       switch (skin.flameType) {
         case 'classic': {
-          const len = rand(6, 14);
+          const len = rand(6, 14) * s;
           ctx.beginPath();
-          ctx.moveTo(fx, -4);
+          ctx.moveTo(fx, -4 * s);
           ctx.lineTo(fx - len, 0);
-          ctx.lineTo(fx, 4);
+          ctx.lineTo(fx, 4 * s);
           ctx.stroke();
           break;
         }
         case 'dual': {
-          const len = rand(5, 10);
+          const len = rand(5, 10) * s;
           ctx.beginPath();
-          ctx.moveTo(fx, -5);
-          ctx.lineTo(fx - len, -5);
+          ctx.moveTo(fx, -5 * s);
+          ctx.lineTo(fx - len, -5 * s);
           ctx.stroke();
           ctx.beginPath();
-          ctx.moveTo(fx, 5);
-          ctx.lineTo(fx - len, 5);
+          ctx.moveTo(fx, 5 * s);
+          ctx.lineTo(fx - len, 5 * s);
           ctx.stroke();
           break;
         }
         case 'cone': {
-          const len = rand(8, 16);
+          const len = rand(8, 16) * s;
           ctx.globalAlpha = 0.5;
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 2 * s;
           ctx.beginPath();
-          ctx.moveTo(fx, -6);
+          ctx.moveTo(fx, -6 * s);
           ctx.lineTo(fx - len, 0);
-          ctx.lineTo(fx, 6);
+          ctx.lineTo(fx, 6 * s);
           ctx.closePath();
           ctx.stroke();
           ctx.globalAlpha = 1;
           break;
         }
         case 'trail': {
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1 * s;
           for (let i = 0; i < 3; i++) {
             const a = rand(-0.3, 0.3);
-            const len = rand(8, 18);
+            const len = rand(8, 18) * s;
             ctx.beginPath();
             ctx.moveTo(fx, 0);
             ctx.lineTo(fx - Math.cos(a) * len, Math.sin(a) * len);
@@ -459,7 +473,7 @@ class Ship {
       ctx.strokeStyle = `rgba(0,180,255,${pulse.toFixed(2)})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.arc(0, 0, 22 * s, 0, Math.PI * 2);
       ctx.stroke();
       ctx.fillStyle = `rgba(0,180,255,${(pulse * 0.35).toFixed(2)})`;
       ctx.fill();
@@ -694,6 +708,10 @@ function killShip() {
   }
 }
 
+function addScore(base) {
+  score += Math.round(base * (SKINS[currentSkinIndex].scoreMult || 1));
+}
+
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
   if (state === 'menu') {
@@ -723,7 +741,10 @@ function update(dt) {
 
   if (pressed('KeyW')) {
     currentSkinIndex = (currentSkinIndex + 1) % SKINS.length;
-    ship.nose = SKINS[currentSkinIndex].nose;
+    const skin = SKINS[currentSkinIndex];
+    const skinScale = skin.scale || 1;
+    ship.nose   = skin.nose * skinScale;
+    ship.radius = SHIP_BASE_RADIUS * skinScale;
   }
 
   // Disparar
@@ -777,7 +798,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += a.isPinkStar ? 200 : POINTS[a.size];
+        addScore(a.isPinkStar ? 200 : POINTS[a.size]);
         if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
         else explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
@@ -793,7 +814,7 @@ function update(dt) {
       if (dist(ship, a) < ship.radius + a.radius * 0.82) {
         if (ship.shieldTimer > 0) {
           a.dead = true;
-          score += a.isPinkStar ? 200 : POINTS[a.size];
+          addScore(a.isPinkStar ? 200 : POINTS[a.size]);
           if (a.isPinkStar) fireworkExplode(a.x, a.y, 25);
           else explode(a.x, a.y, a.size * 5);
           asteroids.push(...a.split());

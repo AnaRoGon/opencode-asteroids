@@ -9,3 +9,7 @@ Ahora necesitamos 3 features:
 [x] implementemos un triple shot: Por 5 segundos, el personaje dispara 3 veces en línea recta.
 [x] implementemos un sistema de skins: Poder cambiar la apariencia de la nave.
 [x] implementemos un escudo: Un escudo que protege a la nave de los proyectiles enemigos.
+
+# Tarea 3
+
+[x] Nueva nave DORADO: amarilla, del doble de tamaño y que otorga el doble de puntos al destruir asteroides.
