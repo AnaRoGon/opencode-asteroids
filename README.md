@@ -6,6 +6,8 @@ Clon del clásico arcade **Asteroids** implementado en canvas HTML5 puro, sin de
 
 Nave espacial en un campo de asteroides con envolvimiento de bordes (el espacio es toroidal). Destruye asteroides para sumar puntos: los grandes se parten en medianos, los medianos en pequeños. Incluye power-ups especiales y tipos de asteroides únicos como la estrella fugaz.
 
+<img width="869" height="657" alt="01" src="https://github.com/user-attachments/assets/e8e878fa-751c-45f7-86fd-5831b4834392" />
+
 ## Tecnologías
 
 - **HTML5 Canvas** — renderizado 2D
